@@ -57,11 +57,48 @@ export default function SearchView() {
     loadRecords();
   }, [fileFilter, docList]);
 
+  // Sort records according to their original file sequence index
+  const sortedRecords = React.useMemo(() => {
+    const getSequenceNumber = (id: string): number => {
+      const parts = id.split('-');
+      if (parts.length >= 4) {
+        const num = parseInt(parts[3], 10);
+        if (!isNaN(num)) return num;
+      }
+      return Infinity; // Newly added go to end
+    };
+
+    return [...allRecords].sort((a, b) => {
+      // 1. Group by file identifier if searching All Files
+      if (a.fileId !== b.fileId) {
+        const docA = docMap[a.fileId];
+        const docB = docMap[b.fileId];
+        if (docA && docB) {
+          if (docA.uploadedAt !== docB.uploadedAt) {
+            return docA.uploadedAt - docB.uploadedAt;
+          }
+          return docA.name.localeCompare(docB.name);
+        }
+        return a.fileId.localeCompare(b.fileId);
+      }
+
+      // 2. Sort by parsed sequence counter within the same file for chronological sequence matching
+      const seqA = getSequenceNumber(a.id);
+      const seqB = getSequenceNumber(b.id);
+      if (seqA !== seqB) {
+        return seqA - seqB;
+      }
+
+      // 3. Fallback stable sort
+      return a.label.localeCompare(b.label);
+    });
+  }, [allRecords, docMap]);
+
   // Group all spreadsheet records in memory by their Row compound key to display full row context
   const xlsxRows = React.useMemo(() => {
     const rows: Record<string, { sheetName: string; rowNum: string; cells: { colName: string; value: string; originalId: string }[] }> = {};
     
-    allRecords.forEach((rec) => {
+    sortedRecords.forEach((rec) => {
       const doc = docMap[rec.fileId];
       if (doc && doc.type === 'xlsx') {
         const match = rec.label.match(/^(.*) - Row (\d+) - (.*)$/);
@@ -84,7 +121,7 @@ export default function SearchView() {
     });
     
     return rows;
-  }, [allRecords, docMap]);
+  }, [sortedRecords, docMap]);
 
   // Transform records into unified SearchResults (grouped XLSX rows & independent standard document records)
   const allProcessedResults = React.useMemo(() => {
@@ -100,7 +137,7 @@ export default function SearchView() {
     
     const addedXlsxKeys = new Set<string>();
 
-    allRecords.forEach((rec) => {
+    sortedRecords.forEach((rec) => {
       const doc = docMap[rec.fileId];
       if (doc && doc.type === 'xlsx') {
         const match = rec.label.match(/^(.*) - Row (\d+) - (.*)$/);
@@ -142,7 +179,7 @@ export default function SearchView() {
     });
 
     return list;
-  }, [allRecords, docMap, xlsxRows]);
+  }, [sortedRecords, docMap, xlsxRows]);
 
   // Filter records case-insensitively based on text inputs
   const filteredResults = React.useMemo(() => {

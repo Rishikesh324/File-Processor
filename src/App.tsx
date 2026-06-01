@@ -120,9 +120,9 @@ export default function App() {
       <div className="md:hidden w-full h-16 bg-slate-900 text-white flex items-center justify-between px-4 border-b border-slate-800 z-50">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white text-xs shadow-xs">
-            FP
+            CI
           </div>
-          <span className="font-semibold tracking-tight text-sm">FileProcessor</span>
+          <span className="font-semibold tracking-tight text-sm">Cust Info</span>
         </div>
         
         <button 
@@ -142,10 +142,10 @@ export default function App() {
           {/* Brand/Heading block */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-base shadow-lg shadow-indigo-600/20">
-              FP
+              CI
             </div>
             <div>
-              <h1 className="font-bold tracking-tight text-white text-base">FileProcessor</h1>
+              <h1 className="font-bold tracking-tight text-white text-base">Cust Info</h1>
               <span className="text-[10px] text-slate-400 block font-semibold uppercase tracking-wider">OFFLINE MANAGER</span>
             </div>
           </div>

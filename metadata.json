@@ -1,5 +1,5 @@
 {
-  "name": "Local File Processor",
+  "name": "Cust Info",
   "description": "Store, edit, search, and download your spreadsheet, document, play text, or presentation files entirely within your browser.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
