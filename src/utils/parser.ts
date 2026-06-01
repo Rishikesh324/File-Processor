@@ -244,7 +244,24 @@ export function compileFileBlob(type: string, records: DocumentRecord[]): Blob {
     const sheetData: Record<string, Record<number, Record<string, string>>> = {};
     const sheetCols: Record<string, Set<string>> = {};
     
-    records.forEach((rec) => {
+    // Sort records by original parsing sequence index to reconstruct original column headers layout
+    const getSequenceNumber = (id: string): number => {
+      const parts = id.split('-');
+      if (parts.length >= 4 && parts[2] !== 'added') {
+        const num = parseInt(parts[3], 10);
+        if (!isNaN(num)) return num;
+      }
+      return Infinity; // Put newly added columns/rows at the end
+    };
+
+    const sortedRecords = [...records].sort((a, b) => {
+      const seqA = getSequenceNumber(a.id);
+      const seqB = getSequenceNumber(b.id);
+      if (seqA !== seqB) return seqA - seqB;
+      return a.id.localeCompare(b.id);
+    });
+
+    sortedRecords.forEach((rec) => {
       // spreadsheet row pattern: SheetName - Row X - ColumnName
       const match = rec.label.match(/^(.*) - Row (\d+)(?: - (.*))?$/);
       if (match) {

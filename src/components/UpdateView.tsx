@@ -133,34 +133,100 @@ export default function UpdateView() {
     const columnsBySheet: Record<string, string[]> = {};
     const rowsBySheet: Record<string, number[]> = {};
 
+    // Group records by sheet first to process sheet-specific structures
+    const recordsBySheet: Record<string, DocumentRecord[]> = {};
+
     localRecords.forEach((rec) => {
       const match = rec.label.match(/^(.*) - Row (\d+)(?: - (.*))?$/);
       if (match) {
         const sheetName = match[1];
-        const rowNum = parseInt(match[2], 10);
-        const colName = match[3] || '';
+        if (!recordsBySheet[sheetName]) {
+          recordsBySheet[sheetName] = [];
+        }
+        recordsBySheet[sheetName].push(rec);
 
         if (!sheets.includes(sheetName)) {
           sheets.push(sheetName);
         }
-        if (!columnsBySheet[sheetName]) {
-          columnsBySheet[sheetName] = [];
-        }
-        if (colName && !columnsBySheet[sheetName].includes(colName)) {
-          columnsBySheet[sheetName].push(colName);
-        }
-        if (!rowsBySheet[sheetName]) {
-          rowsBySheet[sheetName] = [];
-        }
-        if (!rowsBySheet[sheetName].includes(rowNum)) {
-          rowsBySheet[sheetName].push(rowNum);
-        }
       }
     });
 
-    // Sort rows numerically
-    Object.keys(rowsBySheet).forEach((sheet) => {
-      rowsBySheet[sheet].sort((a, b) => a - b);
+    // Helper to extract parsing sequence index from the record's raw ID structure
+    const getSequenceNumber = (id: string): number => {
+      const parts = id.split('-');
+      // Original parsed ID form: rec-xlsx-timestamp-totalCount-random
+      if (parts.length >= 4 && parts[2] !== 'added') {
+        const num = parseInt(parts[3], 10);
+        if (!isNaN(num)) return num;
+      }
+      return Infinity; // Newly added cells/rows go to the end
+    };
+
+    // Process each sheet individually
+    sheets.forEach((sheetName) => {
+      const sheetRecs = recordsBySheet[sheetName] || [];
+
+      // Find Row 1 records (the headers) to determine original column sequence
+      const row1Recs = sheetRecs.filter((rec) => {
+        const match = rec.label.match(/^(.*) - Row 1(?: - (.*))?$/);
+        return !!match;
+      });
+
+      // Sort Row 1 records by their original parsing sequence index
+      row1Recs.sort((a, b) => {
+        const seqA = getSequenceNumber(a.id);
+        const seqB = getSequenceNumber(b.id);
+        if (seqA !== seqB) return seqA - seqB;
+        return a.id.localeCompare(b.id);
+      });
+
+      // Collect the column names in their stable, sorted order
+      const orderedCols: string[] = [];
+      row1Recs.forEach((rec) => {
+        const match = rec.label.match(/^(.*) - Row 1 - (.*)$/);
+        if (match && match[2]) {
+          const colName = match[2];
+          if (!orderedCols.includes(colName)) {
+            orderedCols.push(colName);
+          }
+        }
+      });
+
+      // For any columns not found in Row 1 (such as dynamically added columns),
+      // sort all sheet records and append any missing columns
+      const allOtherCols: string[] = [];
+      const sortedSheetRecs = [...sheetRecs].sort((a, b) => {
+        const seqA = getSequenceNumber(a.id);
+        const seqB = getSequenceNumber(b.id);
+        if (seqA !== seqB) return seqA - seqB;
+        return a.id.localeCompare(b.id);
+      });
+
+      sortedSheetRecs.forEach((rec) => {
+        const match = rec.label.match(/^(.*) - Row (\d+)(?: - (.*))?$/);
+        if (match && match[3]) {
+          const colName = match[3];
+          if (!orderedCols.includes(colName) && !allOtherCols.includes(colName)) {
+            allOtherCols.push(colName);
+          }
+        }
+      });
+
+      columnsBySheet[sheetName] = [...orderedCols, ...allOtherCols];
+
+      // Collect and sort row numbers numerically
+      const rows: number[] = [];
+      sheetRecs.forEach((rec) => {
+        const match = rec.label.match(/^(.*) - Row (\d+)(?: - (.*))?$/);
+        if (match) {
+          const rowNum = parseInt(match[2], 10);
+          if (!rows.includes(rowNum)) {
+            rows.push(rowNum);
+          }
+        }
+      });
+      rows.sort((a, b) => a - b);
+      rowsBySheet[sheetName] = rows;
     });
 
     return { sheets, columnsBySheet, rowsBySheet };
@@ -1106,19 +1172,7 @@ export default function UpdateView() {
                   </div>
                 )}
                 
-                {/* Quick footer save shortcut */}
-                {localRecords.length > 5 && (
-                  <div className="flex justify-end pt-3 border-t border-slate-100">
-                    <button
-                      onClick={handleSaveAll}
-                      disabled={saving}
-                      className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-6 py-2.5 rounded-xl font-bold transition-all shadow-xs active:scale-95 disabled:opacity-50 cursor-pointer"
-                    >
-                      <Save className="w-4 h-4" />
-                      {saving ? 'Saving...' : 'Save Updates'}
-                    </button>
-                  </div>
-                )}
+
               </motion.div>
             ) : (
               <motion.div
@@ -1499,6 +1553,17 @@ export default function UpdateView() {
 
                   {/* Right Column: Information, Alerts, Save Actions */}
                   <div className="space-y-6">
+                    {/* Save Updates button also in Create page side panel */}
+                    <button
+                      type="button"
+                      onClick={handleSaveAll}
+                      disabled={saving}
+                      className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-6 py-3 rounded-xl font-bold transition-all shadow-xs hover:shadow-sm active:scale-95 disabled:opacity-50 cursor-pointer"
+                    >
+                      <Save className="w-4 h-4" />
+                      {saving ? 'Saving...' : 'Save Updates'}
+                    </button>
+
                     {/* File specs summaries */}
                     <div className="bg-slate-50/50 rounded-2xl p-6 border border-slate-150 space-y-3.5">
                       <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">File Summary</h4>
