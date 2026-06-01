@@ -1,7 +1,14 @@
 {
-  "name": "react-example",
+  "name": "file-processor-cust-info",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Offline-first, browser-based customer information ingestion and management tool for xlsx, docx, pptx, and text files.",
+  "author": "Rishikesh",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rishikesh324/File-Processor.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
@@ -11,6 +18,8 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
     "@google/genai": "^2.4.0",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
@@ -28,6 +37,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.3.4",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",
